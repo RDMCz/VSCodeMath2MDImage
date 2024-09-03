@@ -3,6 +3,11 @@
   "displayName": "Math2MDImage",
   "description": "",
   "version": "0.0.1",
+  "publisher": "RDMCz",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RDMCz/VSCodeMath2MDImage"
+  },
   "engines": {
     "vscode": "^1.92.0"
   },
