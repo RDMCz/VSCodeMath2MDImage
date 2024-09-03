@@ -48,7 +48,13 @@ const renderMathJax = (equation: string, filePath: string, renderStyle: RenderSt
             const renderedNode = MathJax.tex2svg(equation, {
                 display: renderStyle === RenderStyle.Display,
             });
-            const renderedSvg = MathJax.startup.adaptor.innerHTML(renderedNode);
+            let renderedSvg: string = MathJax.startup.adaptor.innerHTML(renderedNode);
+
+            // Add white background
+            if (renderedSvg.substring(0, 12) === "<svg style=\"") {
+                renderedSvg = renderedSvg.replace(/(?<=^.{12})/, "background-color: white; ");
+            }
+
             writeSvgFile(filePath, renderedSvg);
         })
         .catch((error: string) => {
