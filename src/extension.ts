@@ -8,10 +8,6 @@ const imageAlt = "math";
 const inlineMath = /^\$[\s\S]*\S+[\s\S]*\$$/;
 const displayMath = /^\$\$[\s\S]*\S+[\s\S]*\$\$$/;
 
-enum RenderEngine {
-    MathJax
-}
-
 enum RenderStyle {
     Invalid,
     Inline,
@@ -83,7 +79,7 @@ const getSvgPaths = (): { absolute: string, relative: string } => {
 };
 
 // Renders selected text in editor to SVG file
-const render = (renderEngine: RenderEngine): void => {
+const render = (): void => {
     // Get selected text
     editor = vscode.window.activeTextEditor;
     const selection = editor?.document.getText(editor?.selection);
@@ -125,7 +121,7 @@ const render = (renderEngine: RenderEngine): void => {
 
 export function activate(context: vscode.ExtensionContext) {
     const renderMathJax = vscode.commands.registerCommand("math2mdimage.renderMathJax", () => {
-        render(RenderEngine.MathJax);
+        render();
     });
 
     context.subscriptions.push(renderMathJax);

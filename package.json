@@ -15,7 +15,7 @@
     "commands": [
       {
         "command": "math2mdimage.renderMathJax",
-        "title": "Math2MDImage » Render math to image (MathJax)"
+        "title": "Math2MDImage » Render math to image"
       }
     ],
     "menus": {
