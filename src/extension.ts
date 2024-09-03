@@ -3,7 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
 
-const filenameEndingLength = 5;
+const filenameEndingLength = 5; // Half of the random characters in filename
 const imageAlt = "math";
 const inlineMath = /^\$[\s\S]*\S+[\s\S]*\$$/;
 const displayMath = /^\$\$[\s\S]*\S+[\s\S]*\$\$$/;
@@ -21,7 +21,7 @@ enum RenderStyle {
 let editor = vscode.window.activeTextEditor;
 
 // Writes content to local file
-const writeSVGFile = (filePath: string, fileContent: string): void => {
+const writeSvgFile = (filePath: string, fileContent: string): void => {
     const dirPath = path.dirname(filePath);
     if (!fs.existsSync(dirPath)) {
         fs.mkdir(dirPath, {recursive: true}, (error: any) => {
@@ -38,7 +38,7 @@ const writeSVGFile = (filePath: string, fileContent: string): void => {
     });
 };
 
-// Renders equation with MathJax and write to local file
+// Renders equation with MathJax and writes to local file
 const renderMathJax = (equation: string, filePath: string, renderStyle: RenderStyle): void => {
     require("mathjax")
         .init({
@@ -49,11 +49,31 @@ const renderMathJax = (equation: string, filePath: string, renderStyle: RenderSt
                 display: renderStyle === RenderStyle.Display,
             });
             const renderedSvg = MathJax.startup.adaptor.innerHTML(renderedNode);
-            writeSVGFile(filePath, renderedSvg);
+            writeSvgFile(filePath, renderedSvg);
         })
         .catch((error: string) => {
             vscode.window.showErrorMessage(`Error: ${error}; Equation: ${equation}; Path: ${filePath}; Style: ${renderStyle}`).then(() => null);
         });
+};
+
+// Returns absolute and relative path to appropriately named SVG file, which can then be generated
+const getSvgPaths = (): { absolute: string, relative: string } => {
+    // Filename has two parts
+    // 1. relative path from project root (workspace) to current document; `-` is used as path separator
+    const workspacePath = vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0].uri.fsPath : "";
+    const currentDocumentPath = editor?.document.uri.fsPath!;
+    let filenameBeginning = path.relative(workspacePath, currentDocumentPath).replaceAll(path.sep, "-");
+    // Get rid of `.MD` or other extension (if there is any) and remove other dots from filename (if there is any)
+    if (filenameBeginning.includes(".")) {
+        filenameBeginning = filenameBeginning.split(".").slice(0, -1).join();
+    }
+    // 2. random characters
+    const randomString = crypto.randomBytes(filenameEndingLength).toString("hex");
+    const filename = `${filenameBeginning}-${randomString}.svg`;
+    // Make paths from filename
+    const absoluteSvgPath = path.join(workspacePath, "svg", filename);
+    const relativeSvgPath = path.relative(path.dirname(currentDocumentPath), absoluteSvgPath);
+    return {absolute: absoluteSvgPath, relative: relativeSvgPath};
 };
 
 // Renders selected text in editor to SVG file
@@ -79,29 +99,19 @@ const render = (renderEngine: RenderEngine): void => {
         if (renderStyle === RenderStyle.Invalid) {
             vscode.window.showErrorMessage("Not a valid equation, include leading and trailing dollar sign(s) as well.").then(() => null);
         } else {
-            // Remove leading and trailing $ / $$
-            const equation = (renderStyle === RenderStyle.Display)
-                ? selection.slice(2, -2).trim()
-                : selection.slice(1, -1).trim();
+            // Remove leading and trailing $/$$ from selected text
+            const equation = (renderStyle === RenderStyle.Display) ? selection.slice(2, -2).trim() : selection.slice(1, -1).trim();
 
-            // Name of generated file has two parts:
-            // 1. relative path from project root (workspace) to current document
-            const workspacePath = vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0].uri.fsPath : "";
-            const currentDocumentPath = editor?.document.uri.fsPath!;
-            const filenameBeginning = path.relative(workspacePath, currentDocumentPath).replaceAll(path.sep, "-");
-            // 2. random characters
-            const randomString = crypto.randomBytes(filenameEndingLength).toString("hex");
-            const filename = `${filenameBeginning}-${randomString}.svg`;
-            const svgPath = path.join(workspacePath, "svg", filename);
+            // Get location of SVG file that will be generated
+            const svgPaths = getSvgPaths();
 
             // Render to SVG file
-            renderMathJax(equation, svgPath, renderStyle);
+            renderMathJax(equation, svgPaths.absolute, renderStyle);
 
             // Comment out the selection and insert markdown image with path to generated SVG file
-            const relativeSvgPath = path.relative(path.dirname(currentDocumentPath), svgPath);
             editor?.edit(editBuilder => {
                 editBuilder.insert(selectionStart, "<!--");
-                editBuilder.insert(selectionEnd, `-->\n![${imageAlt}](${relativeSvgPath})`);
+                editBuilder.insert(selectionEnd, `-->\n![${imageAlt}](${svgPaths.relative})`);
             });
         }
     }
