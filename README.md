@@ -26,7 +26,12 @@ White background is added so images are visible on GitHub's dark background.
 
 ### 0.0.1
 
-Initial release
+* Initial release
+
+### 0.0.2
+
+* Filenames now don't contain spaces (replaced with hyphens)
+* Forward slashes are always used as path separators
 
 ---
 

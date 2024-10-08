@@ -69,6 +69,8 @@ const getSvgPaths = (): { absolute: string, relative: string } => {
     if (filenameBeginning.includes(".")) {
         filenameBeginning = filenameBeginning.split(".").slice(0, -1).join();
     }
+    // Replace spaces with hyphens
+    filenameBeginning = filenameBeginning.replaceAll(" ", "-");
     // 2. random characters
     const randomString = crypto.randomBytes(filenameEndingLength).toString("hex");
     const filename = `${filenameBeginning}-${randomString}.svg`;
@@ -113,7 +115,8 @@ const render = (): void => {
             // Comment out the selection and insert markdown image with path to generated SVG file
             editor?.edit(editBuilder => {
                 editBuilder.insert(selectionStart, "<!--");
-                editBuilder.insert(selectionEnd, `-->\n![${imageAlt}](${svgPaths.relative})`);
+                // Always use forward slashes as path separator in Markdown
+                editBuilder.insert(selectionEnd, `-->\n![${imageAlt}](${svgPaths.relative.replaceAll("\\", "/")})`);
             });
         }
     }
